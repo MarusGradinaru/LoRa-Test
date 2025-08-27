@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>LoRa Control</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+      select, input {
+        font-size: 16px;
+        padding: 3px 0 3px 3px;
+        margin-left: 5px;
+      }
+
+      th, td {
+        border: 1px solid gray;
+        padding: 4px;
+      }
+      th.label, td.label {
+        width: 26%;
+        font-weight: normal;
+        text-align: left;
+        padding-left: 8px;
+        background-color: #EEF;
+      }
+      th:not(.label), td:not(.label) {
+        width: 37%; 
+      }
+ 
+      .num-wrapper {
+        display: inline-flex;
+        align-items: center;
+      }
+      .num-wrapper button {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        margin-left: 2px;
+      }      
+
+      @font-face {
+        font-family: "Roboto";
+        font-style: normal;
+        font-weight: 400;
+        src: url("/robo-reg.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Roboto Condensed";
+        font-style: normal;
+        font-weight: 400;
+        src: url("/robo-cnd-reg.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Next Rounded";
+        font-style: normal;
+        font-weight: 400;
+        src: url("/next-rnd-bold.woff2") format("woff2");
+      }
+      #log { font-family: "Roboto Condensed"; font-size: 17px; }
+      #title, #title_cfg { font-family: "Next Rounded", sans-serif; font-size: 28px; }
+    </style>
+
+  </head>
+  <body style="background-color: #444; font-family: Arial, sans-serif;">
+    <center>
+
+    <!------------------ LoRa Configuration ---------------------->  
+
+    <div id="config" style="width: 98%; font-size: 18px; border: 1px solid #000; border-radius: 14px; 
+      margin-top: 20px; margin-bottom: 10px; background-color: #D6D6D6;">
+
+      <h2 id="title_cfg">LoRa Configuration</h2>
+
+      <p><label for="FQ">Frequency (MHz):</label>
+      <input id="FQ" list="fqlist" inputmode="numeric" style="width: 106px; margin-left: 0px; padding-left: 7px;">
+      <datalist id="fqlist">
+        <option value="10">LoRa CH1</option>
+        <option value="20">LoRa CH2</option>
+        <option value="30">LoRa CH3</option>
+        <option value="40">LoRa CH4</option>
+      </datalist></p>
+
+      <div class="num-wrapper">
+        <label for="PW">TX Power (dBm):</label>
+        <input id="PW" type="text" inputmode="numeric" value="" 
+          style="width: 54px; box-sizing: border-box; margin-left: 10px; margin-right: 5px; padding-left: 7px;">
+        <button id="pwup" type="button" onclick="adjustPW(1)" style="margin-right: 4px;">▲</button>
+        <button id="pwdn" type="button" onclick="adjustPW(-1)">▼</button>
+      </div>
+
+      <p><label for="BW">Ch. Bandwidth:</label><select id="BW" style="width: 115px; margin-left: 26px;">
+        <option value="0">7.8 KHz</option>
+        <option value="1">10.4 KHz</option>
+        <option value="2">15.6 KHz</option>
+        <option value="3">20.8 KHz</option>
+        <option value="4">31.25 KHz</option>
+        <option value="5">41.7 KHz</option>
+        <option value="6">62.5 KHz</option>
+        <option value="7">125 KHz</option>
+        <option value="8">250 KHz</option>
+        <option value="9">500 KHz</option>
+      </select></p>
+    
+      <p><label for="SF">Spreading Factor:</label><select id="SF" style="width: 115px;"></p>
+        <option value="0">SF5</option>
+        <option value="1">SF6</option>
+        <option value="2">SF7</option>
+        <option value="3">SF8</option>
+        <option value="4">SF9</option>
+        <option value="5">SF10</option>
+        <option value="6">SF11</option>
+        <option value="7">SF12</option>
+      </select></p>
+
+      <p><label for="CR">Coding Rate:</label><select id="CR" style="width: 115px; margin-left: 43px;">
+        <option value="0">4/5</option>
+        <option value="1">4/6</option>
+        <option value="2">4/7</option>
+        <option value="3">4/8</option>
+      </select></p>
+
+      <p><label for="PB">Preamble Length:</label><select id="PB" style="width: 115px; margin-left: 6px;">
+        <option value="0">6 symb.</option>
+        <option value="1">7 symbols</option>
+        <option value="2">8 symbols</option>
+        <option value="3">9 symbols</option>
+        <option value="4">10 symbols</option>
+        <option value="5">11 symbols</voption>
+        <option value="6">12 symbols</option>
+        <option value="7">13 symbols</option>
+        <option value="8">14 symbols</option>
+        <option value="9">15 symbols</option>
+        <option value="10">16 symbols</option>
+        <option value="11">17 symbols</option>
+        <option value="12">18 symbols</option>
+        <option value="13">19 symbols</option>
+        <option value="14">20 symbols</option>
+      </select></p>
+
+      <button id="local" onclick="configApply(true)" style="width: 100px; margin: 8px 8px 24px 8px; 
+        padding: 4px 10px 4px 10px; font-size: 16px;">Set Local</button>
+      <button disabled id="cancel" onclick="configCancel()" style="width: 85px; margin: 8px 8px 24px 8px; 
+        padding: 4px 10px 4px 10px; font-size: 16px;">Cancel</button>
+      <button disabled id="apply" onclick="configApply()" style="width: 85px; margin: 8px 8px 24px 8px; 
+        padding: 4px 10px 4px 10px; font-size: 16px;">Apply</button>
+
+      <div style="margin-bottom: 20px;">
+        <label for="TO">Local RX Timeout:</label>
+        <input id="TO" type="text" inputmode="numeric" value="0" style="width: 75px; text-align: center;">
+        <span>ms</span>
+      </div>        
+
+      <div id="cfg_stat" style="width: 94%; box-sizing: border-box; border: 1px solid gray; border-radius: 8px;
+        padding: 3px; margin-bottom: 15px; font-size: 16px;"></div>
+
+    </div>
+
+    <!------------------ LoRa Test ----------------------------->  
+
+    <div style="width: 98%; border: 1px solid #000; border-radius: 14px; background-color: #FFD; 
+      margin-bottom: 10px;">
+
+      <h2 id="title" style="color:rgb(163, 93, 0); margin: 20px 0 5px 0;">LoRa TX / RX Test</h2>
+
+      <div style="font-size: 18px; display: flex; align-items: center; justify-content: center; margin-top: 18px;">
+        <div style="flex: 6;">         
+          <label for="BUF">Buffer Size:</label>
+          <input id="BUF" inputmode="numeric" value="32" style="width: 50px; margin-left: 0px; padding-right: 3px; text-align: center;">
+          <span>B</span>
+        </div>
+        <div style="flex: 4; display: flex; justify-content: center; align-items: center; gap: 5px;">
+          <input id="LCB" type="checkbox" style="width: 18px; height: 18px; accent-color: #007ACC;">
+          <label for="LCB" style="margin-right: 5px;">Log this test</label>
+        </div>  
+      </div>    
+
+      <div style="display: flex;">
+        <div style="flex: 6; font-size: 18px;">
+          <p style="margin-bottom: 8px;">Base Distance: <span id="distance">–</span> m</p>
+          <p style="margin-top: 0px;">GPS Precision: <span id="distacc">–</span> m</p> 
+        </div>
+        <div style="flex: 4; display: flex; justify-content: center; align-items: center;">
+          <button onclick="sendTestCommand()" style="padding: 15px 20px; border-radius: 8px; border: 1px solid gray;
+            font-size: 18px; font-weight: bold; background-color: rgb(232, 248, 255); color: rgb(0, 53, 214);">Start Test</button>
+        </div>
+      </div>  
+
+      <table style="width: 94%; background-color: white; border-collapse: collapse; margin: 2px 0; 
+        text-align: center; font-family: Roboto; font-size: 16px;">
+        <tr>
+          <th class="label">Last:</th>
+          <th style="background-color: #FCC;">Transmision</th>
+          <th style="background-color: #CFC;">Reception</th>
+        </tr>
+        <tr>
+          <td class="label">RSSI:</td>
+          <td id="tx_rssi">–</td>
+          <td id="rx_rssi">–</td>
+        </tr>
+        <tr>
+          <td class="label">SNR:</td>
+          <td id="tx_snr">–</td>
+          <td id="rx_snr">–</td>
+        </tr>
+        <tr>
+          <td class="label">On Air:</td>
+          <td id="tx_toa">–</td>
+          <td id="rx_toa">–</td>
+        </tr>
+        <tr>
+          <td class="label">Freq.Err:</td>
+          <td id="tx_fqerr">–</td>
+          <td id="rx_fqerr">–</td>
+        </tr>
+        <tr>
+          <td class="label">Distance:</td>
+          <td id="tx_dist">–</td>
+          <td id="rx_dist">–</td>
+        </tr>
+      </table>
+
+      <div id="test_stat" style="width: 94%; box-sizing: border-box; border: 1px solid gray; border-radius: 8px;
+        padding: 3px; margin-bottom: 15px; margin-top: 10px; font-size: 16px; background-color: #E1FFAE; ">
+        Standing by. You can start the test.
+      </div>        
+
+    </div>
+   
+    <!------------------ LoRa Test Log --------------------------->  
+
+    <div style="width: 98%; box-sizing: border-box; margin-bottom: 10px; background-color: rgb(230, 230, 230);
+      border: 1px solid #000; border-radius: 14px;">
+      <h2 style="font-family: Next Rounded, sans-serif; font-size: 24px; color:rgb(114, 0, 190); margin: 12px 0 10px 0;">LoRa Test Log</h2>
+      <textarea id="log" rows="26" readonly style="width: 100%; box-sizing: border-box; resize: none; border: 0px; 
+      padding: 8px 8px; margin-bottom: 8px;"></textarea>
+      <button onclick="logDownload()" style="width: 140px; margin: 0 14px 14px 0; padding: 6px 10px; border: 1px solid gray;
+        font-size: 16px; background-color: #AFC; border-radius: 8px;">Download Log</button>
+      <button onclick="logClear()" style="width: 140px; margin: 0 0 14px 14px; padding: 6px 10px; border: 1px solid rgb(91, 91, 91);
+        font-size: 16px; background-color: #FAA; border-radius: 8px;">Clear Log</button>
+    </div>
+
+    <!------------------ GPS Monitoring ---------------------->  
+
+    <div style="width: 98%; font-size: 18px; border: 1px solid #000; border-radius: 14px; 
+      background-color: #DEF; margin-bottom: 20px;">
+
+      <h2 id="title" style="color: rgb(0, 115, 181); margin: 14px 0">GPS Monitoring</h2>
+
+      <div style="display: flex;">
+        <div style="flex: 1; border-top: 1px solid gray; border-right: 1px solid gray; padding: 10px;">
+          <h3 style="margin: 10px 0; font-size: 20px">Current Location:</h3>
+          <p>Lat. : <span id="glat">–</span></p>
+          <p>Lon. : <span id="glon">–</span></p>
+          <p>Precision: <span id="gacc">–</span> m</p>
+        </div>
+        <div style="flex: 1; border-top: 1px solid gray; padding: 10px;">
+          <h3 style="margin: 10px 0; font-size: 20px">Base Location:</h3>
+          <p>Lat. : <span id="blat">–</span></p>
+          <p>Lon. : <span id="blon">–</span></p>
+          <button onclick="clearLocation()" style="width: 40%; max-width: 70px; margin: 0 5px 5px 5px; 
+            padding: 4px 10px; font-size: 16px;">Clear</button>
+          <button onclick="setLocation()" style="width: 40%; max-width: 70px; margin: 0 5px 5px 5px; 
+            padding: 4px 10px; font-size: 16px;">Set</button>
+        </div>
+      </div>    
+
+    </div>
+
+    <!------------------------------------------------------------>  
+
+
+    <script>
+      const msgTestReady = "Standing by. You can start the test.";
+      const cfgStatReady = "Ready - You can start changing the settings.";
+      const cfgStatEdit  = "The configuration is being edited...";
+      const msgCfgRead   = "Reading configuration from server...";
+      const msgLoraBusy  = "LoRa is busy ! Please wait..."; 
+
+      const MIME_PLAIN   = "text/plain";
+      const MIME_HTML    = "text/html";
+      const MIME_JSON    = "application/json";
+
+      const PW_MIN = -9;
+      const PW_MAX = 22;
+
+      let cfgMode  = null;
+      let cfgData  = null;
+      let cfgTemp  = null;   
+
+      const clErrorBkg = "#900";
+      const clErrorText = "#FF0";
+
+      let logTestRes = true;
+
+      const listBandwidth  = [7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125, 250, 500];
+      const listSpreading  = [5, 6, 7, 8, 9, 10, 11, 12];
+      const listCodingRate = [5, 6, 7, 8];
+      const listPreamble   = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+      const cfgPanel  = document.getElementById("config");
+      const cfgTitle  = document.getElementById("title_cfg");
+      const cfgFreq   = document.getElementById("FQ");
+      const cfgPwUp   = document.getElementById("pwup");
+      const cfgPwDn   = document.getElementById("pwdn");
+      const cfgInPW   = document.getElementById("PW");
+      const cfgSelBW  = document.getElementById("BW");
+      const cfgSelSF  = document.getElementById("SF");
+      const cfgSelCR  = document.getElementById("CR");
+      const cfgSelPB  = document.getElementById("PB");
+      const cfgLocal  = document.getElementById("local");
+      const cfgApply  = document.getElementById("apply");
+      const cfgCancel = document.getElementById("cancel");
+      const cfgStat   = document.getElementById("cfg_stat");
+      const cfgRxTout = document.getElementById("TO");
+
+      const gpsLat    = document.getElementById("glat");
+      const gpsLon    = document.getElementById("glon");
+      const gpsAcc    = document.getElementById("gacc");
+      const baseLat   = document.getElementById("blat");
+      const baseLon   = document.getElementById("blon");
+
+      const cfgBuffer = document.getElementById("BUF");
+      const logTest   = document.getElementById("LCB");
+      const gpsDist   = document.getElementById("distance");
+      const distAcc   = document.getElementById("distacc");
+      const txToa     = document.getElementById("tx_toa");
+      const rxToa     = document.getElementById("rx_toa");
+      const txRssi    = document.getElementById("tx_rssi");
+      const rxRssi    = document.getElementById("rx_rssi");
+      const txSnr     = document.getElementById("tx_snr");
+      const rxSnr     = document.getElementById("rx_snr");
+      const txFqErr   = document.getElementById("tx_fqerr");
+      const rxFqErr   = document.getElementById("rx_fqerr");
+      const txDist    = document.getElementById("tx_dist");
+      const rxDist    = document.getElementById("rx_dist");      
+      const testStat  = document.getElementById("test_stat");
+      const testLog   = document.getElementById("log");
+
+      function isMobileDevice() {
+        //console.log(navigator.userAgent);
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      }
+
+      function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // Earth radius in meters
+        const toRad = deg => deg * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }      
+
+      function triggerHapticFeedback() {
+        if ("vibrate" in navigator) navigator.vibrate(50);
+        else console.log("Vibration API is not available on this device.");
+      }
+
+      function logHeader(msg) {
+        const timestamp = new Date().toLocaleString("ro-RO");
+        const newLine = `[${timestamp}] ${msg}\n`;
+        return newLine;
+      }
+
+      function logAddMsg(msg) {
+        testLog.value = msg + "\n" + testLog.value;
+        testLog.scrollTop = 0;
+        localStorage.setItem("Log", testLog.value);
+      }
+
+      function logRestore() {
+        const savedLog = localStorage.getItem("Log");
+        if (savedLog) { testLog.value = savedLog; testLog.scrollTop = 0; }
+      }   
+      
+      function logClear() {
+        triggerHapticFeedback();
+        testLog.value = "";
+        localStorage.removeItem("Log");
+      }     
+
+      function logDownload() {
+        triggerHapticFeedback();
+        const logText = testLog.value;
+        const blob = new Blob([logText], { type: MIME_PLAIN });
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`
+          + `-${String(now.getHours()).padStart(2,'0')}.${String(now.getMinutes()).padStart(2,'0')}.${String(now.getSeconds()).padStart(2,'0')}`;
+        const fname = `LoRa test log [${timestamp}].txt`;  
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+   
+      // ---------- LoRa TX/RX Test -------------------------
+
+      let LoraResTimer = null;
+      let distance = null;
+      let test_dist = null;
+      let testTimer = null;
+
+      function testSetMsg(msg, error = false, temp = false) {
+        if (testTimer) { clearTimeout(testTimer); testTimer = null; }
+        if (error) {
+          testStat.style.backgroundColor = clErrorBkg;
+          testStat.style.color = clErrorText;
+        } else {
+          testStat.style.backgroundColor = "#E1FFAE";
+          testStat.style.color = "#302406";
+        }
+        testStat.innerText = msg;
+        if (temp) testTimer = setTimeout( () => { 
+          testStat.innerText = msgTestReady; 
+          testStat.style.backgroundColor = "#E1FFAE";
+          testStat.style.color = "#302406";
+          testTimer = null; 
+        }, 4000);
+      }      
+            
+      async function sendTestCommand() {
+        triggerHapticFeedback();
+        if (LoraResTimer) { testSetMsg(msgLoraBusy, true, true); return; }
+        clearTestResults();
+        try {
+          const response = await fetch("/dotest?timeout="+cfgRxTout.value.trim() +
+            "&buff="+cfgBuffer.value.trim(), { method: "POST" });          
+          if (response.status === 404) { testSetMsg("Error: Server is not reachable.", true, true); return; }
+          const cntType = response.headers.get("content-type");
+          if (!cntType) { testSetMsg("Error: no content type found.", true, true); return; }
+          let rpl_msg = null;
+          if (cntType.includes(MIME_PLAIN)) { rpl_msg = await response.text(); }
+          if (response.status !== 200) {
+            if (!rpl_msg) testSetMsg("Unknown error.", true, true);
+              else testSetMsg("Error: " + rpl_msg, true, true); 
+            return;
+          }
+          if (rpl_msg) testSetMsg(rpl_msg);
+          test_dist = distance; logTestRes = logTest.checked;
+          LoraResTimer = setInterval(checkTestResult, 1000);
+        } catch (error) { testSetMsg("Error: "+error.message, true, true) }
+      }
+     
+      async function checkTestResult() {
+        try {
+          const response = await fetch("/restest");
+          if (response.status === 202) return;
+          clearInterval(LoraResTimer);
+          if (response.status === 200) {
+            data = await response.json();
+            testSetMsg("The test was completed successfully.", false, true);
+            txRssi.innerText  = data.tx_rssi.toFixed(2) + " dBm"; rxRssi.innerText  = data.rx_rssi.toFixed(2) + " dBm";
+            txSnr.innerText   = data.tx_snr.toFixed(2) + " dB";   rxSnr.innerText   = data.rx_snr.toFixed(2) + " dB";
+            txToa.innerText   = data.tx_toa + " ms";              rxToa.innerText   = data.rx_toa + " ms";
+            txFqErr.innerText = data.tx_fqerr.toFixed(1) + " Hz"; rxFqErr.innerText = data.rx_fqerr.toFixed(1) + " Hz";
+            txDist.innerText  = test_dist ? test_dist.toFixed(1) + " m" : "–";
+            rxDist.innerText  = test_dist ? test_dist.toFixed(1) + " m" : "–";
+            if (logTestRes) {
+              let msg;
+              if (!test_dist) msg = logHeader("Test Results");
+                else msg = logHeader("Test Results for "+Math.round(test_dist)+" m");
+              msg += "TX  ->  RSSI: "+data.tx_rssi.toFixed(2)+" dBm,  SNR: "+data.tx_snr.toFixed(2)+" dB\n";
+              msg += "RX  ->  RSSI: "+data.rx_rssi.toFixed(2)+" dBm,  SNR: "+data.rx_snr.toFixed(2)+" dB\n";
+              msg += "TX  ->  On Air: "+data.tx_toa+" ms,  Freq.Err: "+data.tx_fqerr.toFixed(1)+" Hz\n";
+              msg += "RX  ->  On Air: "+data.rx_toa+" ms,  Freq.Err: "+data.rx_fqerr.toFixed(1)+" Hz\n";
+              let fq_mhz = Math.trunc(cfgData.freq / 1000) / 1000;
+              msg += fq_mhz.toFixed(3)+" MHz, "+listBandwidth[cfgData.bandw]+" KHz, "+cfgData.txpwr+" dBm, SF"+
+                listSpreading[cfgData.spread]+", 4/"+listCodingRate[cfgData.cdrate]+", "+
+                listPreamble[cfgData.preamb]+"sy\n";
+              logAddMsg(msg); 
+            }
+          } else testSetMsg(await response.text(), true, true); 
+          LoraResTimer = null;
+        } catch (error) {
+          testSetMsg("Error: " + error.message, true, true);
+          clearInterval(LoraResTimer); LoraResTimer = null;          
+        }
+      }
+
+      function clearTestResults() {
+        txToa.innerText   = "–"; rxToa.innerText   = "–";
+        txRssi.innerText  = "–"; rxRssi.innerText  = "–";
+        txSnr.innerText   = "–"; rxSnr.innerText   = "–";
+        txFqErr.innerText = "–"; rxFqErr.innerText = "–";
+        txDist.innerText  = "–"; rxDist.innerText  = "–";
+      }
+ 
+      // ----------- GPS Monitoring ------------------ 
+
+      let currentLat = null;
+      let currentLon = null;
+      let savedLat   = null;
+      let savedLon   = null;
+
+      function setLocation() {
+        if (currentLat !== null && currentLon !== null) {
+          triggerHapticFeedback();
+          savedLat = currentLat;
+          savedLon = currentLon;
+          baseLat.textContent = savedLat.toFixed(6);
+          baseLon.textContent = savedLon.toFixed(6);
+          localStorage.setItem("BaseLat", savedLat.toFixed(6));
+          localStorage.setItem("BaseLon", savedLon.toFixed(6));
+        }
+      }
+
+      function restoreLocation() {
+        const savedLatStr = localStorage.getItem("BaseLat");
+        const savedLonStr = localStorage.getItem("BaseLon");
+        if (savedLatStr !== null && savedLonStr !== null) {
+          savedLat = parseFloat(savedLatStr); 
+          savedLon = parseFloat(savedLonStr); 
+          baseLat.textContent = savedLat.toFixed(6);
+          baseLon.textContent = savedLon.toFixed(6);
+        }
+      }
+
+      function clearLocation() {
+        triggerHapticFeedback();
+        savedLat = null;
+        savedLon = null;
+        baseLat.textContent = "–";
+        baseLon.textContent = "–";
+        localStorage.removeItem("BaseLat");
+        localStorage.removeItem("BaseLon");
+      }
+
+      function handlePosition(position) {
+        currentLat = position.coords.latitude;
+        currentLon = position.coords.longitude;
+        const acc  = position.coords.accuracy;
+        gpsLat.textContent = currentLat.toFixed(6);
+        gpsLon.textContent = currentLon.toFixed(6);
+        gpsAcc.textContent = acc.toFixed(1);
+        if (savedLat !== null && savedLon !== null) {
+          distance = haversine(savedLat, savedLon, currentLat, currentLon);
+          gpsDist.textContent = distance.toFixed(1);
+          distAcc.textContent = acc.toFixed(1);
+        }      
+      }
+      function handleError(error) {
+        console.error("GPS Error:", error.message);
+      }
+
+      // ----------- LoRa Configuration ------------------ 
+
+      let cfgTimer = null;
+
+      const CFM = Object.freeze({ Init: 0, Ready: 1, Edit: 2 });
+      const Config = [
+        Object.freeze({ clPanelBkg: "#D6D6D6", clTitleText: "#202020", clStatBkg: "#C2FFC0", clStatText: "#062F1D", btnLocal: false, btnApply: false, btnCancel: false, StatMsg: msgCfgRead}),
+        Object.freeze({ clPanelBkg: "#D0F0D0", clTitleText: "#007000", clStatBkg: "#C2FFC0", clStatText: "#062F1D", btnLocal: true,  btnApply: false, btnCancel: false, StatMsg: cfgStatReady}),
+        Object.freeze({ clPanelBkg: "#F0C0E0", clTitleText: "#800000", clStatBkg: "#F0A8E8", clStatText: "#000000", btnLocal: false, btnApply: true , btnCancel: true , StatMsg: cfgStatEdit})
+      ];
+
+      function configStatColor(mode) {
+        cfgStat.style.backgroundColor = Config[mode].clStatBkg;
+        cfgStat.style.color = Config[mode].clStatText;
+      }
+
+      function configSetMode(mode, setmsg = true) {
+        if (cfgTimer) { clearTimeout(cfgTimer); cfgTimer = null; }
+        cfgPanel.style.backgroundColor = Config[mode].clPanelBkg;
+        cfgTitle.style.color= Config[mode].clTitleText;
+        cfgLocal.disabled = !Config[mode].btnLocal;
+        cfgApply.disabled = !Config[mode].btnApply;
+        cfgCancel.disabled = !Config[mode].btnCancel;
+        if (setmsg) cfgStat.innerText = Config[mode].StatMsg;
+        configStatColor(mode);
+        if (mode === CFM.Init) {
+          cfgInPW.value = "";
+          cfgSelBW.selectedIndex = -1;
+          cfgSelSF.selectedIndex = -1;
+          cfgSelCR.selectedIndex = -1;
+          cfgSelPB.selectedIndex = -1;
+        }
+        cfgMode = mode;
+      }
+
+      function configSetMsg(msg, error = false, temp = false) {
+        if (cfgTimer) { clearTimeout(cfgTimer); cfgTimer = null; }
+        if (error) {
+          cfgStat.style.backgroundColor = clErrorBkg;
+          cfgStat.style.color = clErrorText;
+        } else configStatColor(cfgMode); cfgTimer = null; 
+        cfgStat.innerText = msg;
+        if (temp) cfgTimer = setTimeout( () => { 
+          cfgStat.innerText = Config[cfgMode].StatMsg; 
+          configStatColor(cfgMode); cfgTimer = null; 
+        }, 4000);
+      }
+
+      function configEnable(state) {
+        if (state) {
+          cfgFreq.disabled  = false;
+          cfgPwUp.disabled  = false;
+          cfgPwDn.disabled  = false;
+          cfgInPW.disabled  = false;
+          cfgSelBW.disabled = false;
+          cfgSelSF.disabled = false;
+          cfgSelCR.disabled = false;
+          cfgSelPB.disabled = false;
+        } else {
+          cfgFreq.disabled  = true;
+          cfgPwUp.disabled  = true;
+          cfgPwDn.disabled  = true;
+          cfgInPW.disabled  = true;
+          cfgSelBW.disabled = true;
+          cfgSelSF.disabled = true;
+          cfgSelCR.disabled = true;
+          cfgSelPB.disabled = true;
+        }
+      }
+
+      function validatePW(onExit) {
+        if (cfgMode === CFM.Ready) configSetMode(CFM.Edit);
+        let tmpVal = cfgInPW.value.trim();
+        if (onExit || ((tmpVal !== "-") && (tmpVal !==""))) {
+          const sign = tmpVal.startsWith("-");
+          tmpVal = tmpVal.replace(/[^0-9]/g, '');
+          if (sign) tmpVal = '-'+tmpVal;
+          let tmpNum = parseInt(tmpVal, 10);
+          if (isNaN(tmpNum)) tmpNum = 0;
+          if (tmpNum < PW_MIN) tmpNum = PW_MIN;
+          if (tmpNum > PW_MAX) tmpNum = PW_MAX;
+          tmpVal = tmpNum.toString();
+        }
+        cfgInPW.value = tmpVal;
+      }    
+
+      function adjustPW(step) {
+        triggerHapticFeedback();
+        if (cfgMode === CFM.Ready) configSetMode(CFM.Edit);
+        let num = parseInt(cfgInPW.value, 10);
+        if (isNaN(num)) num = 0;
+        num += step;
+        if (num < PW_MIN) num = PW_MIN;
+        if (num > PW_MAX) num = PW_MAX;
+        cfgInPW.value = num;
+      }
+
+      async function configApply(justLocal = false) {
+        triggerHapticFeedback();
+        if (LoraResTimer) { configSetMsg(msgLoraBusy, true, true); return; }
+        try {
+          let cmd;
+          if (justLocal) {
+            cmd = "/setcfg?loc=1&timeout="+cfgRxTout.value.trim();
+            cfgTemp = cfgData; 
+          } else {
+            cmd = "/setcfg?loc=0&timeout="+cfgRxTout.value.trim();
+            cfgTemp = {
+              freq:   Math.trunc(parseFloat(cfgFreq.value) * 1e6),
+              txpwr:  parseInt(cfgInPW.value, 10),
+              bandw:  cfgSelBW.selectedIndex,
+              spread: cfgSelSF.selectedIndex,
+              cdrate: cfgSelCR.selectedIndex,
+              preamb: cfgSelPB.selectedIndex
+            }
+          }
+          const response = await fetch(cmd, { 
+            method: "POST", 
+            headers: {"Content-Type": MIME_JSON}, 
+            body: JSON.stringify(cfgTemp)
+          });
+          if (response.status === 404) { configSetMsg("Error: Server is not reachable.", true, true); return; }
+          const cntType = response.headers.get("content-type");
+          if (!cntType) { configSetMsg("Error: no content type found.", true, true); return; }
+          let rpl_msg = null;
+          if (cntType.includes(MIME_PLAIN)) rpl_msg = await response.text();
+          if (response.status !== 200) {
+            if (!rpl_msg) configSetMsg("Unknown error.", true, true);
+              else configSetMsg("Error: " + rpl_msg, true, true); 
+            return;
+          }
+          if (rpl_msg) configSetMsg(rpl_msg);
+          configEnable(false); cfgCancel.disabled = true; cfgApply.disabled = true;
+          LoraResTimer = setInterval(() => checkCfgResult(justLocal), 1000);
+        } catch (error) { configSetMsg("Error: "+error.message, true, true) }
+      }
+
+      async function checkCfgResult(justLocal) {
+        try {
+          const response = await fetch("/rescfg");
+          if (response.status === 202) return;
+          clearInterval(LoraResTimer);
+          configEnable(true); 
+          if (response.status === 200) {
+            if (justLocal) configSetMsg("Local LoRa config has been updated.", false, true);
+            else {
+              cfgData = cfgTemp;
+              configSetMode(CFM.Ready, false); 
+              configSetMsg("The changes were successfully applied.", false, true);
+            }
+          } else {
+            configSetMsg(await response.text(), true, true);
+            cfgCancel.disabled = false; cfgApply.disabled = false;
+          }
+          LoraResTimer = null; cfgTemp = null;
+        } catch (error) {
+          configSetMsg("Error: " + error.message, true, true);
+          clearInterval(LoraResTimer); LoraResTimer = null; cfgTemp = null;
+        } 
+      }
+
+      function configCancel() {
+        triggerHapticFeedback();
+        let fq_mhz = Math.trunc(cfgData.freq / 1000) / 1000;
+        cfgFreq.value = fq_mhz.toFixed(3);        
+        cfgInPW.value = cfgData.txpwr;
+        cfgSelBW.selectedIndex = cfgData.bandw;
+        cfgSelSF.selectedIndex = cfgData.spread;
+        cfgSelCR.selectedIndex = cfgData.cdrate;
+        cfgSelPB.selectedIndex = cfgData.preamb;
+        configSetMode(CFM.Ready); 
+      }
+
+      async function configRead() {
+        try {
+          const response = await fetch("/getcfg");
+          if (response.status === 404) { configSetMsg("Error: Server is not reachable.", true); return; }
+          const cntType = response.headers.get("content-type");
+          if (!cntType) { configSetMsg("Error: no content type found.", true); return; }
+          if (response.status !== 200) {
+            if (!cntType.includes(MIME_PLAIN)) configSetMsg("Unknown error.", true);
+              else configSetMsg("Error: " + await response.text(), true);
+            return;
+          }
+          if (!cntType.includes(MIME_JSON)) { configSetMsg("Error: Invalid data format.", true); return; }  
+          const data = await response.json();
+          let fq_mhz = Math.trunc(data.freq / 1000) / 1000;
+          cfgFreq.value = fq_mhz.toFixed(3);
+          cfgInPW.value = data.txpwr;
+          cfgSelBW.selectedIndex = data.bandw;
+          cfgSelSF.selectedIndex = data.spread;
+          cfgSelCR.selectedIndex = data.cdrate;
+          cfgSelPB.selectedIndex = data.preamb;
+          cfgData = data; configSetMode(CFM.Ready);
+        } catch (error) { configSetMsg("Error: "+error.message, true) }
+      }
+
+      // -------------------------------------------------------
+
+      configSetMode(CFM.Init);
+      function onValueChange() { if (cfgMode === CFM.Ready) configSetMode(CFM.Edit); }  
+      cfgFreq.addEventListener("input", onValueChange);
+      cfgInPW.addEventListener("input", function() { validatePW(false) });
+      cfgInPW.addEventListener("blur", function() { validatePW(true) });
+      cfgSelBW.addEventListener("change", onValueChange);
+      cfgSelSF.addEventListener("change", onValueChange);
+      cfgSelCR.addEventListener("change", onValueChange);
+      cfgSelPB.addEventListener("change", onValueChange);
+      configRead(); logTest.checked = logTestRes;
+
+      document.addEventListener("DOMContentLoaded", function () { 
+        if (isMobileDevice()) {
+          logRestore(); 
+          restoreLocation();
+          if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(handlePosition, handleError,
+              {enableHighAccuracy: true, maximumAge: 1000, timeout: 5000});
+          } else {
+            console.error("Geolocation is not supported by this device.");
+          }
+        }
+      } );
+
+    </script>
+  </body>
+</html>
