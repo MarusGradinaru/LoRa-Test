@@ -308,6 +308,9 @@ const float psConst = (100.0f / TX_DC) - 1.0f;
 #define LoraEndRplText(code, msg)   { LoraGive(); request->send(code, MIME_PLAIN, FlashParams(msg)); return; }
 #define LoraEndRplCode(code)        { LoraGive(); request->send(code); return; }
 
+#define RssiTake()                  xSemaphoreTake(rssiMutex, portMAX_DELAY)
+#define RssiGive()                  xSemaphoreGive(rssiMutex)
+
 typedef struct {
   bool Running = false;
   bool Result = false;
@@ -324,6 +327,9 @@ typedef struct {
 } LoraShareData;
 SemaphoreHandle_t loraMutex = xSemaphoreCreateMutex();
 LoraShareData loraData; 
+
+volatile float BandRSSI = 0;
+SemaphoreHandle_t rssiMutex = xSemaphoreCreateMutex();
 
 const size_t MAX_JSON_SIZE = 120;  
 char jBuff[MAX_JSON_SIZE + 1];  // (+1 for null terminator)
@@ -491,9 +497,9 @@ void LoraConfigTask(void* pvParameters) {
       loraData.Result = true;         
     } while (false);
 
-    LORA.standby();
-    PrintLn("[SX1262] Back to standby.\n");
-    SerialGive();    
+    Print("[SX1262] Back to listening mode... ");
+    CheckLoraResult(LORA.startReceive());
+    PrintLn(""); SerialGive();    
   } while (false);
   LoraTake(); loraData.Running = false; hIsrTask = NULL; LoraGive();
   vTaskDelete(NULL);
@@ -585,14 +591,31 @@ void LoraTestTask(void* pvParameters) {
       loraData.Result = true; 
     } while (false); 
 
-    LORA.standby();
-    PrintLn("[SX1262] Back to standby.\n");
-    SerialGive();
+    Print("[SX1262] Back to listening mode... ");
+    CheckLoraResult(LORA.startReceive());
+    PrintLn(""); SerialGive();    
   } while (false);
   LoraTake(); loraData.Running = false; hIsrTask = NULL; LoraGive();
   vTaskDelete(NULL);
 }
 
+// ------ RSSI Band Monitor  ----------------------------------------
+
+void handleRSSI(AsyncWebServerRequest *request) {
+  RssiTake(); float band_rssi = BandRSSI; RssiGive();
+  char result[32];
+  snprintf(result, sizeof(result), "{\"rssi\":%.2f}", band_rssi);
+  request->send(200, MIME_JSON, result);
+}
+
+void BandMonitorTask(void* pvParameters) {
+  float band_rssi;
+  while (true) {
+    LoraTake(); if (!loraData.Running) band_rssi = LORA.getRSSI(false); LoraGive();
+    RssiTake(); BandRSSI = band_rssi; RssiGive();
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
 
 #else  //------------------------------------------ RX MODULE ------------------------------------
 
@@ -699,6 +722,7 @@ void setup() {
     Server.on("/rescfg", HTTP_GET, handleCfgRes);
     Server.on("/dotest", HTTP_POST, handleDoTest);
     Server.on("/restest", HTTP_GET, handleTestRes);
+    Server.on("/rssi", HTTP_GET, handleRSSI);
 
   #else // RX MODULE 
 
@@ -723,12 +747,19 @@ void setup() {
     listPreamble[LoraCfg.preamb], LoraCfg.xovolt, LoraCfg.useldo), true);
   LORA.setRfSwitchPins(PIN_RX_EN, PIN_TX_EN);
 
+  Print("[SX1262] Setup RX boosted gain mode... ");
+  CheckLoraResult(LORA.setRxBoostedGainMode(true));
+
   #if defined(TX_MODULE)  // ---------- TX MODULE SETUP --------------------------------
 
     SerialTake();
 
-    Print("[SX1262] Entering standby mode... ");
-    CheckLoraResult(LORA.standby(), true);
+    Print("[SX1262] Entering listening mode... ");
+    CheckLoraResult(LORA.startReceive(), true);
+
+    Print("[SYSTEM] Starting RSSI Band Monitor task... ");
+      if (xTaskCreatePinnedToCore(BandMonitorTask, "BandMonitorTask", 2048, NULL, 1, NULL, 1) == pdPASS) 
+        { PrintLn("done !"); } else { PrintLn("failed !"); while (true) delay(1000); }
 
     Print("[SYSTEM] Starting HTTP Server... ");
     Server.begin(); PrintLn("done !");      
