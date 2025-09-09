@@ -54,7 +54,9 @@
         "sstream": "cpp",
         "streambuf": "cpp",
         "thread": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "*.inc": "cpp",
+        "stop_token": "cpp"
     },
     "cmake.ignoreCMakeListsMissing": true
 }

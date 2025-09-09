@@ -136,9 +136,12 @@
       <p><label for="RCL">RX Cable Loss (dB):</label>
         <input id="RCL" type="text" inputmode="numeric" value="0.3" maxlength="6" style="margin-left: 31px;"></p>
 
-      <p style="margin-bottom: 25px;"><label for="RFE">RX Front-end: (dB):</label>
+      <p style="margin-bottom: 22px;"><label for="RFE">RX Front-end: (dB):</label>
         <input id="RFE" type="text" inputmode="numeric" readonly value=""
           style="margin-left: 38px; background-color: #DFF; border: 1px solid grey;"></p>    
+
+      <p style="margin-bottom: 25px;"><label for="RSN">Real Setup Noise (dB):</label>
+        <input id="RSN" type="text" inputmode="numeric" value="9.5" maxlength="6" style="margin-left: 11px;"></p>
     </div>      
 
     <!------------------ LoRa Configuration ---------------------->  
@@ -228,7 +231,7 @@
         </select>
       </p>
 
-      <button id="local" onclick="configApply(true)" style="width: 100px; margin: 12px 8px 24px 8px; 
+      <button id="local" onclick="configApply(false)" style="width: 100px; margin: 12px 8px 24px 8px; 
         padding: 4px 10px 4px 10px; font-size: 16px;">Set Local</button>
       <button disabled id="cancel" onclick="configCancel()" style="width: 85px; margin: 12px 8px 24px 8px; 
         padding: 4px 10px 4px 10px; font-size: 16px;">Cancel</button>
@@ -237,7 +240,7 @@
 
       <div style="margin-bottom: 20px;">
         <label for="RTO" style="width: auto;">Local RX Timeout:</label>
-        <input id="RTO" type="text" inputmode="numeric" maxlength="6" value="0" style="width: 85px; text-align: center;">
+        <input id="RTO" type="text" inputmode="numeric" maxlength="6" value="2000" style="width: 85px; text-align: center;">
         <span>ms</span>
       </div>        
 
@@ -416,6 +419,7 @@
       const linkRAG   = document.getElementById("RAG");
       const linkRCL   = document.getElementById("RCL");
       const linkRFE   = document.getElementById("RFE");
+      const setupNF   = document.getElementById("RSN");
 
       const cfgPanel  = document.getElementById("config");
       const cfgTitle  = document.getElementById("title_cfg");
@@ -676,6 +680,7 @@
       }
 
       function clearComment() {
+        triggerHapticFeedback();
         comText.value = "";
       }
  
@@ -748,6 +753,7 @@
       function BandMonitor(state) {
         if (rbmTimer !== null) { clearInterval(rbmTimer); rbmTimer = null; bandRssi.innerText = "–"; }
         if (state) { rbmTimer = setInterval(updateBandRssi, 1000); failCount = 0; }
+        if (state) navigator.sendBeacon("/rssion"); else navigator.sendBeacon("/rssioff");
       }
 
       async function updateBandRssi() {
@@ -885,16 +891,13 @@
         Recalculate();
       }
 
-      async function configApply(justLocal = false) {
+      async function configApply(cfgRemote = true) {
         triggerHapticFeedback();
         if (LoraResTimer) { configSetMsg(msgLoraBusy, true, true); return; }
         try {
           let cmd;
-          if (justLocal) {
-            cmd = "/setcfg?loc=1&timeout="+cfgRxTout.value.trim();
-            cfgTemp = cfgData; 
-          } else {
-            cmd = "/setcfg?loc=0&timeout="+cfgRxTout.value.trim();
+          if (cfgRemote) {
+            cmd = "/setcfg?rem=1&timeout="+cfgRxTout.value.trim();
             cfgTemp = {
               freq:   Math.trunc(parseFloat(cfgFreq.value) * 1e6),
               txpwr:  parseInt(cfgInPW.value, 10),
@@ -903,6 +906,9 @@
               cdrate: cfgSelCR.selectedIndex,
               preamb: cfgSelPB.selectedIndex
             }
+          } else {
+            cmd = "/setcfg?rem=0&timeout="+cfgRxTout.value.trim();
+            cfgTemp = cfgData; 
           }
           const response = await fetch(cmd, { 
             method: "POST", 
@@ -921,23 +927,22 @@
           }
           if (rpl_msg) configSetMsg(rpl_msg);
           configEnable(false); cfgCancel.disabled = true; cfgApply.disabled = true;
-          LoraResTimer = setInterval(() => checkCfgResult(justLocal), 1000);
+          LoraResTimer = setInterval(() => checkCfgResult(cfgRemote), 1000);
         } catch (error) { configSetMsg("Error: "+error.message, true, true) }
       }
 
-      async function checkCfgResult(justLocal) {
+      async function checkCfgResult(cfgRemote) {
         try {
           const response = await fetch("/rescfg");
           if (response.status === 202) return;
           clearInterval(LoraResTimer);
           configEnable(true); 
           if (response.status === 200) {
-            if (justLocal) configSetMsg("Local LoRa config has been updated.", false, true);
-            else {
+            if (cfgRemote) {
               cfgData = cfgTemp;
               configSetMode(CFM.Ready, false); 
               configSetMsg("The changes were successfully applied.", false, true);
-            }
+            } else configSetMsg("Local LoRa config has been updated.", false, true);
           } else {
             configSetMsg(await response.text(), true, true);
             cfgCancel.disabled = false; cfgApply.disabled = false;
@@ -1012,6 +1017,7 @@
         const tx_cab_loss = parseFloat(linkTCL.value);
         const rx_ant_gain = parseFloat(linkRAG.value);
         const rx_cab_loss = parseFloat(linkRCL.value);
+        const rx_setup_nf = parseFloat(setupNF.value);
         const lora_freq = parseFloat(cfgFreq.value);
         const tx_power = parseFloat(cfgInPW.value);
         const lora_bw = listBandwidth[cfgSelBW.selectedIndex] * 1000;
@@ -1026,7 +1032,7 @@
         const eff_power = tx_erp + rx_fr_end;
         const snr_min = -2.5 * (lora_sf -4);
         const abs_nf = 10 * Math.log10( 1.38E-23 * 293 * lora_bw * 1000 );
-        const eff_nf = abs_nf + rx_noise_fig;
+        const eff_nf = abs_nf + rx_noise_fig + rx_setup_nf;
         const rx_sens = eff_nf + snr_min;
         const link_budget = eff_power - rx_sens;
         const range_fspl = Math.pow(10, (link_budget - 32.45 - (20 * Math.log10(lora_freq))) / 20);
@@ -1073,6 +1079,8 @@
       linkRAG.addEventListener("blur",  function() { validateInput(this, true, -100, 100, false, true); Recalculate(); });
       linkRCL.addEventListener("input", function() { validateInput(this, true, -100, 100, false, false); });
       linkRCL.addEventListener("blur",  function() { validateInput(this, true, -100, 100, false, true); Recalculate(); });
+      setupNF.addEventListener("input", function() { validateInput(this, true, -100, 100, false, false); });
+      setupNF.addEventListener("blur",  function() { validateInput(this, true, -100, 100, false, true); Recalculate(); });
 
       cfgFreq.addEventListener("input", function() { validateInput(this, true, 150, 960, true, false); });
       cfgFreq.addEventListener("blur",  function() { validateInput(this, true, 150, 960, true, true); Recalculate(); });
