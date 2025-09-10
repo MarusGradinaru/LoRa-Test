@@ -397,7 +397,6 @@ class MSX1262 : public SX1262 {   //--------------------------------------------
       return state;
     }
     
-    // Works only for explicit header !
     int16_t receiveEx(uint8_t* data, size_t len, RadioLibTime_t exTimeout) {
       int16_t state = standby(); RADIOLIB_ASSERT(state);
       RadioLibTime_t hwTimeout = 0; RadioLibTime_t swTimeout = 0;
@@ -422,9 +421,10 @@ class MSX1262 : public SX1262 {   //--------------------------------------------
       // if it was a timeout, this will return an error code
       state = standby();
       if ((state != RADIOLIB_ERR_NONE) && (state != RADIOLIB_ERR_SPI_CMD_TIMEOUT)) return(state);
+      // cache the IRQ flags and clean up after reception
+      uint32_t irqFlags = getIrqFlags(); state = finishReceive(); RADIOLIB_ASSERT(state);
       // check whether this was a timeout or not
-      if ((getIrqFlags() & RADIOLIB_SX126X_IRQ_TIMEOUT) || softTimeout)
-        { standby(); clearIrqStatus(); return RADIOLIB_ERR_RX_TIMEOUT; }
+      if ((irqFlags & RADIOLIB_SX126X_IRQ_TIMEOUT) || softTimeout) return RADIOLIB_ERR_RX_TIMEOUT;
       // read the received data
       return(readData(data, len));
     }
