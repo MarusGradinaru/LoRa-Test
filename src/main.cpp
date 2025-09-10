@@ -175,6 +175,7 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
 #define  MAX_CFG_JSON   120
 #define  MAX_RES_JSON   160
 #define  DEF_BUFF_SIZE  32
+#define  RX_TIMEOUT     2000
 
 const uint16_t cmdStartTest = 0xC1E8u;
 const uint16_t rplTestRes   = 0xE8C1u;
@@ -212,7 +213,6 @@ class MSX1262 : public SX1262 {   //--------------------------------------------
       bool Running = false;
       bool Result = false;
       String Error;
-      uint32_t rxTimeout = 0;
       uint32_t buffSize = DEF_BUFF_SIZE;
       // Test results [out]
       float tx_rssi, rx_rssi, tx_snr, rx_snr, tx_fqerr, rx_fqerr;
@@ -397,7 +397,7 @@ class MSX1262 : public SX1262 {   //--------------------------------------------
       return state;
     }
     
-    int16_t receiveEx(uint8_t* data, size_t len, RadioLibTime_t exTimeout) {
+    int16_t receiveEx(uint8_t* data, size_t len, RadioLibTime_t exTimeout = 0) {
       int16_t state = standby(); RADIOLIB_ASSERT(state);
       RadioLibTime_t hwTimeout = 0; RadioLibTime_t swTimeout = 0;
       if (getPacketType() != RADIOLIB_SX126X_PACKET_TYPE_LORA) return RADIOLIB_ERR_UNKNOWN;
@@ -431,7 +431,7 @@ class MSX1262 : public SX1262 {   //--------------------------------------------
 
     bool WaitForReplay(uint8_t* buff, size_t len, uint16_t rplID, size_t nData = 0) {
       Print("[SX1262] Waiting for replay... ");
-      int16_t state = receiveEx(buff, len, Data.rxTimeout);
+      int16_t state = receiveEx(buff, len, RX_TIMEOUT);
       CheckLoraResult(state);
       if (state == RADIOLIB_ERR_RX_TIMEOUT) { Data.Error = msgLoraTimeout; return false; }  
       if (state != RADIOLIB_ERR_NONE) { FormatError(msgLLFail, " RX", state); return false; }
@@ -550,12 +550,7 @@ void handleSetCfgBody(AsyncWebServerRequest* request, uint8_t* data, size_t len,
     if (!request->hasParam("rem")) LoraEndRplText(400, msgBadCmd);
     if (!request->contentType().equals(MIME_JSON)) LoraEndRplText(400, msgNoJson); 
     if (request->contentLength() > MAX_CFG_JSON) LoraEndRplText(413, msgJBuffOver);
-    String strParam; strParam.reserve(16);
-    if (!request->hasParam("timeout")) LORA.Data.rxTimeout = 0; else {
-      strParam = request->getParam("timeout")->value();
-      char* endptr; LORA.Data.rxTimeout = strtoul(strParam.c_str(), &endptr, DEC);
-      if (*endptr != '\0') LORA.Data.rxTimeout = 0; }     
-    strParam = request->getParam("rem")->value();
+    String strParam = request->getParam("rem")->value();
     if (!strParam.equals("0") && !strParam.equals("1")) LoraEndRplText(400, msgBadCmd);
     LORA.Data.cfgRemote = strParam.equals("1"); LORA.Data.Running = true;
     SafePrintLn("[SERVER] Received valid LoRa reconfiguration request.");
@@ -670,18 +665,10 @@ void LoraTestTask(void* pvParameters);
 void handleDoTest(AsyncWebServerRequest* request) {
   LORA.devTake(); 
   if (LORA.Data.Running) LoraEndRplText(429, msgBusy);
-  String strParam; strParam.reserve(10);
-  if (!request->hasParam("buff")) LORA.Data.buffSize = DEF_BUFF_SIZE;
-  else {
-    strParam = request->getParam("buff")->value();
+  if (!request->hasParam("buff")) LORA.Data.buffSize = DEF_BUFF_SIZE; else {
+    String strParam = request->getParam("buff")->value();
     char* endptr; LORA.Data.buffSize = strtoul(strParam.c_str(), &endptr, DEC);
     if (*endptr != '\0') LORA.Data.buffSize = DEF_BUFF_SIZE;
-  } 
-  if (!request->hasParam("timeout")) LORA.Data.rxTimeout = 0;
-  else {
-    strParam = request->getParam("timeout")->value();
-    char* endptr; LORA.Data.rxTimeout = strtoul(strParam.c_str(), &endptr, DEC);
-    if (*endptr != '\0') LORA.Data.rxTimeout = 0;
   } 
   LORA.Data.Result = false; 
   SerialTake(); Print("[SERVER] Starting LoRa Test task...");
@@ -811,7 +798,7 @@ void LoraServerTask(void* pvParameters) {
         if (!CheckLoraResult(LORA.ApplyUserCfg())) break;
         // Testing the new configuration
         Print("[SX1262] Waiting for Ping... ");
-        if (!CheckLoraResult(LORA.receiveEx(buff, sizeof(buff), 2000))) break;
+        if (!CheckLoraResult(LORA.receiveEx(buff, sizeof(buff), RX_TIMEOUT))) break;
         bSize = LORA.getPacketLength();
         if (bSize != 2 || memcmp(buff, &cmdPing, 2) != 0) { PrintLn("[SYSTEM] Ping not received"); break; }
         memcpy(buff, &rplPing, 2); memcpy(&buff[2], &statSuccess, 2); bSize = 4; delay(100);

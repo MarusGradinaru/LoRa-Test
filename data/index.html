@@ -238,12 +238,6 @@
       <button disabled id="apply" onclick="configApply()" style="width: 85px; margin: 12px 8px 24px 8px; 
         padding: 4px 10px 4px 10px; font-size: 16px;">Apply</button>
 
-      <div style="margin-bottom: 20px;">
-        <label for="RTO" style="width: auto;">Local RX Timeout:</label>
-        <input id="RTO" type="text" inputmode="numeric" maxlength="6" value="2000" style="width: 85px; text-align: center;">
-        <span>ms</span>
-      </div>        
-
       <div id="cfg_stat" style="width: 94%; box-sizing: border-box; border: 1px solid gray; border-radius: 8px;
         padding: 3px; margin-bottom: 15px; font-size: 16px;"></div>
 
@@ -435,7 +429,6 @@
       const cfgApply  = document.getElementById("apply");
       const cfgCancel = document.getElementById("cancel");
       const cfgStat   = document.getElementById("cfg_stat");
-      const cfgRxTout = document.getElementById("RTO");
 
       const lsMinSnr  = document.getElementById("snr_min");
       const lsEffNF   = document.getElementById("ef_nf");
@@ -581,8 +574,7 @@
         if (LoraResTimer) { testSetMsg(msgLoraBusy, true, true); return; }
         clearTestResults();
         try {
-          const response = await fetch("/dotest?timeout="+cfgRxTout.value.trim() +
-            "&buff="+cfgBuffer.value.trim(), { method: "POST" });          
+          const response = await fetch("/dotest?buff="+cfgBuffer.value.trim(), { method: "POST" });          
           if (response.status === 404) { testSetMsg("Error: Server is not reachable.", true, true); return; }
           const cntType = response.headers.get("content-type");
           if (!cntType) { testSetMsg("Error: no content type found.", true, true); return; }
@@ -897,7 +889,7 @@
         try {
           let cmd;
           if (cfgRemote) {
-            cmd = "/setcfg?rem=1&timeout="+cfgRxTout.value.trim();
+            cmd = "/setcfg?rem=1";
             cfgTemp = {
               freq:   Math.trunc(parseFloat(cfgFreq.value) * 1e6),
               txpwr:  parseInt(cfgInPW.value, 10),
@@ -907,7 +899,7 @@
               preamb: cfgSelPB.selectedIndex
             }
           } else {
-            cmd = "/setcfg?rem=0&timeout="+cfgRxTout.value.trim();
+            cmd = "/setcfg?rem=0";
             cfgTemp = cfgData; 
           }
           const response = await fetch(cmd, { 
@@ -1090,8 +1082,6 @@
       cfgSelSF.addEventListener("change", onValueChange);
       cfgSelCR.addEventListener("change", onValueChange);
       cfgSelPB.addEventListener("change", onValueChange);
-      cfgRxTout.addEventListener("input", function() { validateInput(this, false, 0, 240000, false, false); });
-      cfgRxTout.addEventListener("blur",  function() { validateInput(this, false, 0, 240000, false, true); });
 
       cfgBuffer.addEventListener("input", function() { validateInput(this, false, 1, 255, false, false); });
       cfgBuffer.addEventListener("blur",  function() { validateInput(this, false, 1, 255, false, true); Recalculate(); });
