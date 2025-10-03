@@ -107,6 +107,21 @@
         padding: 0;
         vertical-align: middle;
       }
+
+      .bulk-cfg p {
+        margin: 0 0 10px 0;
+      }
+      .bulk-cfg label {
+        display: inline-block;
+        text-align: left;
+        width: 245px;
+      }
+      .bulk-cfg input, .bulk-cfg select {
+        width: 80px; 
+        font-size: 16px;
+        box-sizing: border-box; 
+        padding: 2px 6px;
+      }      
     </style>
 
   </head>
@@ -158,6 +173,7 @@
           <option value="868.300">600 KHz, 14 dBm, 1%</option>
           <option value="869.525">250 KHz, 27 dBm, 10%</option>
           <option value="869.850">300 KHz, 7 dBm, 100%</option>
+          <option value="864.700">600 KHz, 10 dBm, 100%</option>
         </datalist>
       </p>
 
@@ -239,8 +255,7 @@
         padding: 4px 10px 4px 10px; font-size: 16px;">Apply</button>
 
       <div id="cfg_stat" style="width: 94%; box-sizing: border-box; border: 1px solid gray; border-radius: 8px;
-        padding: 3px; margin-bottom: 15px; font-size: 16px;"></div>
-
+        padding: 3px; margin-bottom: 15px; font-size: 16px;"></div>  
     </div>
 
     <!------------------ LoRa Link Summary --------------------->  
@@ -278,7 +293,7 @@
     <div style="width: 98%; border: 1px solid #000; border-radius: 14px; background-color: #FFD; 
       margin-bottom: 10px;">
 
-      <h2 id="title" style="color:rgb(163, 93, 0); margin: 20px 0 16px 0;">LoRa TX / RX Test</h2>
+      <h2 id="title" style="color:rgb(163, 93, 0); margin: 20px 0 16px 0;">LoRa Range Test</h2>
 
       <div style="font-size: 18px; display: flex; padding: 8px 0 12px 0; margin-top: 10px;">
         <div style="flex: 6; align-items: center; justify-content: center;">
@@ -340,6 +355,92 @@
         font-size: 16px; background-color: #FAA; border-radius: 8px;">Clear Log</button>
     </div>
 
+    <!------------------ Bulk Test --------------------------->  
+
+    <div class="bulk-cfg" style="width: 98%; font-size: 18px; border: 1px solid #000; 
+      border-radius: 14px; background-color: #FFD; margin-bottom: 10px;">
+
+      <h2 id="title" style="color: rgb(163, 93, 0);">LoRa Bulk Test</h2>   
+      
+      <p><label for="BulkPS">Bulk Payload Size (bytes):</label><input id="BulkPS" inputmode="numeric" maxlength="5" value="1200" ></p>
+      <p><label for="BulkDL">Packet TX Delay (ms):</label><input id="BulkDL" inputmode="numeric" maxlength="3" value="4" ></p>
+
+      <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+        border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px; margin-top: 15px;">
+        <tr> <td class="sum-lab">Total Packet Count:</td>   <td class="sum-val" style="width: 140px;" id="pk_count">–</td> </tr>
+        <tr> <td class="sum-lab"> - header info:</td>       <td class="sum-val" style="width: 140px;" id="pk_head">–</td> </tr>
+        <tr> <td class="sum-lab"> - full size:</td>         <td class="sum-val" style="width: 140px;" id="pk_full">–</td> </tr>
+        <tr> <td class="sum-lab"> - partial used:</td>      <td class="sum-val" style="width: 140px;" id="pk_rest">–</td> </tr>
+      </table>
+
+      <button id="BulkTest" onclick="sendBulkTest()" style="width: 105px; 
+        padding: 4px 10px 4px 10px; font-size: 16px; margin-top: 15px;">Start Test</button>
+
+      <div id="BulkStat" style="width: 94%; box-sizing: border-box; border: 1px solid gray; border-radius: 8px;
+        padding: 3px; margin-top: 15px; font-size: 16px; background-color: #E1FFAE; ">
+        Standing by. You can start the test.
+      </div>  
+
+      <div style="width: 270px; background-color: #0579c6; box-sizing: border-box; padding: 8px 0;
+        border: 1px solid gray; border-radius: 8px; color: white; font-size: 20px; margin-top: 26px;">
+        Data Rate:&nbsp; <span id="blk_dr">–</span> KB/s
+      </div> 
+
+      <div id="pan_first" style="margin-top: 25px;">
+        <div id="title_first" style="margin: 15px 0 10px 0; font-weight: bold; color: navy;">First Pack Timing:</div>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px;">
+          <tr> <td class="sum-lab">TX - Off Time:</td>   <td class="sum-val" style="width: 140px;" id="head_off">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read Time:</td>  <td class="sum-val" style="width: 140px;" id="head_read">–</td> </tr>
+        </table>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px; margin-top: 8px;">
+          <tr> <td class="sum-lab">TX - Off & TOA:</td>   <td class="sum-val" style="width: 140px;" id="head_tx_all">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read & Work:</td>  <td class="sum-val" style="width: 140px;" id="head_rx_work">–</td> </tr>
+        </table>
+      </div>
+
+      <div id="pan_full">
+        <div style="margin: 15px 0 10px 0; font-weight: bold; color: navy;">Rest - Full Pack Timing:</div>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px;">
+          <tr> <td class="sum-lab">TX - Off Time:</td>   <td class="sum-val" style="width: 140px;" id="full_off">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read Time:</td>  <td class="sum-val" style="width: 140px;" id="full_read">–</td> </tr>
+        </table>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px; margin-top: 8px;">
+          <tr> <td class="sum-lab">TX - Off & TOA:</td>    <td class="sum-val" style="width: 140px;" id="full_tx_all">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read & Work:</td>  <td class="sum-val" style="width: 140px;" id="full_rx_work">–</td> </tr>
+        </table>
+      </div>  
+
+      <div id="pan_part">
+        <div style="margin: 15px 0 10px 0; font-weight: bold; color: navy;">Partial Pack Timing:</div>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px;">
+          <tr> <td class="sum-lab">TX - Off Time:</td>   <td class="sum-val" style="width: 140px;" id="part_off">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read Time:</td>  <td class="sum-val" style="width: 140px;" id="part_read">–</td> </tr>
+        </table>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px; margin-top: 8px;">
+          <tr> <td class="sum-lab">TX - Off & TOA:</td>    <td class="sum-val" style="width: 140px;" id="part_tx_all">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read & Work:</td>  <td class="sum-val" style="width: 140px;" id="part_rx_work">–</td> </tr>
+        </table>
+      </div>
+      
+      <div>
+        <div id="title_rpl" style="margin: 15px 0 10px 0; font-weight: bold; color: navy;">Reply Timing:</div>
+        <table style="width: 94%; max-width: 340px; background-color: #FFE; border-collapse: collapse; 
+          border: 1px solid; text-align: center; font-family: Roboto; font-size: 16px;">
+          <tr> <td class="sum-lab">TX - Receive Switch:</td> <td class="sum-val" style="width: 140px;" id="rpl_switch">–</td> </tr>
+          <tr> <td class="sum-lab">RX - Read & Work:</td>  <td class="sum-val" style="width: 140px;" id="rpl_rx_work">–</td> </tr>
+        </table>
+      </div>
+
+      <div style="margin-bottom: 20px;"></div>
+
+    </div>      
+
     <!------------------ GPS Monitoring ---------------------->  
 
     <div style="width: 98%; font-size: 18px; border: 1px solid #000; border-radius: 14px; 
@@ -378,7 +479,7 @@
       <div style="margin-bottom: 20px;"></div>
     </div>
 
-    <!------------------------------------------------------------>  
+    <!--------------------------------------------------------->  
 
 
     <script>
@@ -395,6 +496,11 @@
       const PW_MIN = -9;
       const PW_MAX = 22;
 
+      const LORA_MAX_PACK_LENGTH = 255;
+      const MAX_BULK_PS = LORA_MAX_PACK_LENGTH -2;
+      const MAX_BULK_SIZE = (0xFF * MAX_BULK_PS) -2;
+      const BULK_HEAD_SIZE = 8;
+
       let cfgMode  = null;
       let cfgData  = null;
       let cfgTemp  = null;   
@@ -407,73 +513,104 @@
       const listCodingRate = [5, 6, 7, 8];
       const listPreamble   = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
-      const linkTAG   = document.getElementById("TAG");
-      const linkTCL   = document.getElementById("TCL");
-      const linkERP   = document.getElementById("ERP");
-      const linkRAG   = document.getElementById("RAG");
-      const linkRCL   = document.getElementById("RCL");
-      const linkRFE   = document.getElementById("RFE");
-      const setupNF   = document.getElementById("RSN");
+      const linkTAG    = document.getElementById("TAG");
+      const linkTCL    = document.getElementById("TCL");
+      const linkERP    = document.getElementById("ERP");
+      const linkRAG    = document.getElementById("RAG");
+      const linkRCL    = document.getElementById("RCL");
+      const linkRFE    = document.getElementById("RFE");
+      const setupNF    = document.getElementById("RSN");
 
-      const cfgPanel  = document.getElementById("config");
-      const cfgTitle  = document.getElementById("title_cfg");
-      const cfgFreq   = document.getElementById("FQ");
-      const cfgPwUp   = document.getElementById("pwup");
-      const cfgPwDn   = document.getElementById("pwdn");
-      const cfgInPW   = document.getElementById("PW");
-      const cfgSelBW  = document.getElementById("BW");
-      const cfgSelSF  = document.getElementById("SF");
-      const cfgSelCR  = document.getElementById("CR");
-      const cfgSelPB  = document.getElementById("PB");
-      const cfgLocal  = document.getElementById("local");
-      const cfgApply  = document.getElementById("apply");
-      const cfgCancel = document.getElementById("cancel");
-      const cfgStat   = document.getElementById("cfg_stat");
+      const cfgPanel   = document.getElementById("config");
+      const cfgTitle   = document.getElementById("title_cfg");
+      const cfgFreq    = document.getElementById("FQ");
+      const cfgPwUp    = document.getElementById("pwup");
+      const cfgPwDn    = document.getElementById("pwdn");
+      const cfgInPW    = document.getElementById("PW");
+      const cfgSelBW   = document.getElementById("BW");
+      const cfgSelSF   = document.getElementById("SF");
+      const cfgSelCR   = document.getElementById("CR");
+      const cfgSelPB   = document.getElementById("PB");
+      const cfgLocal   = document.getElementById("local");
+      const cfgApply   = document.getElementById("apply");
+      const cfgCancel  = document.getElementById("cancel");
+      const cfgStat    = document.getElementById("cfg_stat");
 
-      const lsMinSnr  = document.getElementById("snr_min");
-      const lsEffNF   = document.getElementById("ef_nf");
-      const lsRxSens  = document.getElementById("rx_sens");
-      const lsBudget  = document.getElementById("lnk_bud");
-      const lsRngFS   = document.getElementById("fs_rng");
-      const lsRngST   = document.getElementById("st_rng");
+      const lsMinSnr   = document.getElementById("snr_min");
+      const lsEffNF    = document.getElementById("ef_nf");
+      const lsRxSens   = document.getElementById("rx_sens");
+      const lsBudget   = document.getElementById("lnk_bud");
+      const lsRngFS    = document.getElementById("fs_rng");
+      const lsRngST    = document.getElementById("st_rng");
 
-      const lsSybTime = document.getElementById("syb_time");
-      const lsPkSybs  = document.getElementById("pk_sybs");
-      const lsPkRate  = document.getElementById("pk_rate");
-      const lsTOA     = document.getElementById("pk_toa");
-      const lsPlRate  = document.getElementById("pl_rate");
+      const lsSybTime  = document.getElementById("syb_time");
+      const lsPkSybs   = document.getElementById("pk_sybs");
+      const lsPkRate   = document.getElementById("pk_rate");
+      const lsTOA      = document.getElementById("pk_toa");
+      const lsPlRate   = document.getElementById("pl_rate");
 
-      const cfgBuffer = document.getElementById("BUF");
-      const bandRssi  = document.getElementById("band_rssi");
-      const logTest   = document.getElementById("LCB");
-      const logFails  = document.getElementById("LER");
-      const gpsDist   = document.getElementById("distance");
-      const distAcc   = document.getElementById("distacc");
-      const txRssi    = document.getElementById("tx_rssi");
-      const rxRssi    = document.getElementById("rx_rssi");
-      const txSnr     = document.getElementById("tx_snr");
-      const rxSnr     = document.getElementById("rx_snr");
-      const txMLnk    = document.getElementById("tx_lnkm");
-      const rxMLnk    = document.getElementById("rx_lnkm");
-      const txPLos    = document.getElementById("tx_plos");
-      const rxPLos    = document.getElementById("rx_plos");
-      const txNFloor  = document.getElementById("tx_nfl");
-      const rxNFloor  = document.getElementById("rx_nfl");
-      const txFqErr   = document.getElementById("tx_fqerr");
-      const rxFqErr   = document.getElementById("rx_fqerr");
-      const lnkDist   = document.getElementById("lnk_dist");
-      const testStat  = document.getElementById("test_stat");
-      const comText   = document.getElementById("TCOM");
+      const cfgBuffer  = document.getElementById("BUF");
+      const bandRssi   = document.getElementById("band_rssi");
+      const logTest    = document.getElementById("LCB");
+      const logFails   = document.getElementById("LER");
+      const gpsDist    = document.getElementById("distance");
+      const distAcc    = document.getElementById("distacc");
+      const txRssi     = document.getElementById("tx_rssi");
+      const rxRssi     = document.getElementById("rx_rssi");
+      const txSnr      = document.getElementById("tx_snr");
+      const rxSnr      = document.getElementById("rx_snr");
+      const txMLnk     = document.getElementById("tx_lnkm");
+      const rxMLnk     = document.getElementById("rx_lnkm");
+      const txPLos     = document.getElementById("tx_plos");
+      const rxPLos     = document.getElementById("rx_plos");
+      const txNFloor   = document.getElementById("tx_nfl");
+      const rxNFloor   = document.getElementById("rx_nfl");
+      const txFqErr    = document.getElementById("tx_fqerr");
+      const rxFqErr    = document.getElementById("rx_fqerr");
+      const lnkDist    = document.getElementById("lnk_dist");
+      const testStat   = document.getElementById("test_stat");
+      const comText    = document.getElementById("TCOM");
       
-      const testLog   = document.getElementById("log");
+      const testLog    = document.getElementById("log");
 
-      const gpsLat    = document.getElementById("glat");
-      const gpsLon    = document.getElementById("glon");
-      const gpsAcc    = document.getElementById("gacc");
-      const baseLat   = document.getElementById("blat");
-      const baseLon   = document.getElementById("blon");      
+      const blkPacks   = document.getElementById("pk_count");
+      const blkHP      = document.getElementById("pk_head");
+      const blkFP      = document.getElementById("pk_full");
+      const blkPP      = document.getElementById("pk_rest");
+      const panFirst   = document.getElementById("pan_first");
+      const ptFirst    = document.getElementById("title_first");
+      const panFull    = document.getElementById("pan_full");
+      const panPart    = document.getElementById("pan_part");
+      const ptReply    = document.getElementById("title_rpl");
+      const blkDRate   = document.getElementById("blk_dr");
 
-      const bandMon   = document.getElementById("RBM");      
+      const headOff    = document.getElementById("head_off");
+      const headRead   = document.getElementById("head_read");
+      const headTxAll  = document.getElementById("head_tx_all");
+      const headRxWork = document.getElementById("head_rx_work");
+      const fullOff    = document.getElementById("full_off");
+      const fullRead   = document.getElementById("full_read");
+      const fullTxAll  = document.getElementById("full_tx_all");
+      const fullRxWork = document.getElementById("full_rx_work");
+      const partOff    = document.getElementById("part_off");
+      const partRead   = document.getElementById("part_read");
+      const partTxAll  = document.getElementById("part_tx_all");
+      const partRxWork = document.getElementById("part_rx_work");
+      const rplSwitch  = document.getElementById("rpl_switch");
+      const rplRxWork  = document.getElementById("rpl_rx_work");
+
+      const gpsLat     = document.getElementById("glat");
+      const gpsLon     = document.getElementById("glon");
+      const gpsAcc     = document.getElementById("gacc");
+      const baseLat    = document.getElementById("blat");
+      const baseLon    = document.getElementById("blon");
+
+      const bandMon    = document.getElementById("RBM");
+
+      const bulkPSize  = document.getElementById("BulkPS");
+      const bulkDelay  = document.getElementById("BulkDL");
+      const bulkTest   = document.getElementById("BulkTest");
+      const bulkStat   = document.getElementById("BulkStat");
 
       function isMobileDevice() {
         //console.log(navigator.userAgent);
@@ -675,7 +812,175 @@
         triggerHapticFeedback();
         comText.value = "";
       }
- 
+
+      // ----------- Bulk Tests ------------------ 
+
+      let bulkTimer = null;    
+      
+      const blkData = {
+        total: 0,
+        full: 0,
+        part: 0
+      }
+
+      const blkTest = {
+        total: 0,
+        full: 0,
+        part: 0
+      }      
+
+      function bulkSetMsg(msg, error = false, temp = false) {
+        if (testTimer) { clearTimeout(bulkTimer); bulkTimer = null; }
+        if (error) {
+          bulkStat.style.backgroundColor = clErrorBkg;
+          bulkStat.style.color = clErrorText;
+        } else {
+          bulkStat.style.backgroundColor = "#E1FFAE";
+          bulkStat.style.color = "#302406";
+        }
+        bulkStat.innerText = msg;
+        if (temp) bulkTimer = setTimeout( () => { 
+          bulkStat.innerText = msgTestReady; 
+          bulkStat.style.backgroundColor = "#E1FFAE";
+          bulkStat.style.color = "#302406";
+          bulkTimer = null; 
+        }, 4000);
+      }       
+
+      function clearTiming() {
+        headOff.innerText    = "–";
+        headRead.innerText   = "–";
+        headTxAll.innerText  = "–";
+        headRxWork.innerText = "–";
+        fullOff.innerText    = "–";
+        fullRead.innerText   = "–";
+        fullTxAll.innerHTML  = "–";
+        fullRxWork.innerText = "–";
+        partOff.innerText    = "–";
+        partRead.innerText   = "–";
+        partTxAll.innerText  = "–";
+        partRxWork.innerText = "–";
+        rplSwitch.innerText  = "–";
+        rplRxWork.innerText  = "–";
+      }
+
+      function setupTiming(full, part) {
+        clearTiming();
+        panFirst.style.display = "none";
+        panFull.style.display = "none";
+        panPart.style.display = "none";        
+        if (full > 0 || part) {
+          panFirst.style.display = "";
+          if (full > 0) ptFirst.innerText = "First - Full Pack Timing"; 
+            else ptFirst.innerText = "First - Partial Pack Timing";
+          if (full > 1) panFull.style.display = "";
+          if (full > 0 && part) panPart.style.display = "";
+        }
+        if (!full && !part) ptReply.innerText = "First - Reply Timing";
+          else ptReply.innerText = "Reply Timing";
+      }
+
+      function updateTiming(data) {
+        if (blkTest.total <= 1) {
+          rplSwitch.innerText = (data.ofhd / 1000).toFixed(3) + " ms";
+          rplRxWork.innerText = (data.wkhd / 1000).toFixed(3) + " ms";
+
+        } else {
+          headOff.innerText = (data.ofhd / 1000).toFixed(3) + " ms";
+          headRead.innerText = (data.rdhd / 1000).toFixed(3) + " ms";
+          headTxAll.innerText = ((data.ofhd + (blkTest.full > 0 ? data.toaf : data.toap)) / 1000).toFixed(3) + " ms";
+          headRxWork.innerText = (data.wkhd / 1000).toFixed(3) + " ms";
+
+          if (blkTest.full > 1) {
+            fullOff.innerText = (data.ofmi / 1000).toFixed(3) + " ms";
+            fullRead.innerText = (data.rdmx / 1000).toFixed(3) + " ms";
+            fullTxAll.innerHTML = ((data.ofmi+data.toaf) / 1000).toFixed(3) + " ms";
+            fullRxWork.innerText = (data.wkmx / 1000).toFixed(3) + " ms";
+          }
+          if (blkTest.full > 0 && blkTest.part) {
+            partOff.innerText = (data.ofpt / 1000).toFixed(3) + " ms";
+            partRead.innerText = (data.rdpt / 1000).toFixed(3) + " ms";
+            partTxAll.innerText = (data.ofpt + data.toap / 1000).toFixed(3) + " ms";
+            partRxWork.innerText = (data.wkpt / 1000).toFixed(3) + " ms";
+          }
+          rplSwitch.innerText = (data.ofrp / 1000).toFixed(3) + " ms";
+          rplRxWork.innerText = (data.wkrp / 1000).toFixed(3) + " ms";
+        }
+      }
+
+      function recalcBulk() {
+        const bulk_size = parseInt(bulkPSize.value , 10);
+        const bulk_head = 1; let bulk_full = 0; let bulk_part = 0; let rest = 0; let flag = false;
+        if (bulk_size) {
+          bulk_full = Math.trunc(bulk_size / MAX_BULK_PS);
+          rest = bulk_size % MAX_BULK_PS;
+          if (MAX_BULK_PS - rest >= 2) {
+            rest += 2; // +2 the CRC
+            if (rest === MAX_BULK_PS) { bulk_full++; rest = 0; } 
+              else { bulk_part = 1; rest += 2; }  // +2 pack header
+          } else {
+            bulk_full++; flag = true;
+            bulk_part = 1; rest = 4;
+          }
+        }
+        blkData.total = bulk_head + bulk_full + bulk_part;
+        blkData.full = bulk_full; blkData.part = bulk_part > 0;
+        blkPacks.innerText = `${blkData.total} packs`;
+        blkHP.innerText = `${bulk_head} pk : ${BULK_HEAD_SIZE} B`;
+        blkFP.innerText = `${bulk_full} pk : ${
+          bulk_full > 1 ?
+            `${LORA_MAX_PACK_LENGTH}${flag ? `(${(LORA_MAX_PACK_LENGTH - 1) % 10})` : ""}` :
+            (flag ? (LORA_MAX_PACK_LENGTH - 1) : LORA_MAX_PACK_LENGTH)
+          } B`;
+        blkPP.innerText = `${bulk_part} pk : ${rest} B`;
+        setupTiming(bulk_full, bulk_part > 0);
+      }
+
+      async function sendBulkTest() {
+        triggerHapticFeedback();
+        if (LoraResTimer) { bulkSetMsg(msgLoraBusy, true, true); return; }
+        try {
+          const response = await fetch(
+            "/bulk?buff="+bulkPSize.value.trim()+"&delay="+bulkDelay.value.trim(), { method: "POST" });          
+          if (response.status === 404) { bulkSetMsg("Error: Server is not reachable.", true, true); return; }
+          const cntType = response.headers.get("content-type");
+          if (!cntType) { bulkSetMsg("Error: no content type found.", true, true); return; }
+          let rpl_msg = null;
+          if (cntType.includes(MIME_PLAIN)) { rpl_msg = await response.text(); }
+          if (response.status !== 200) {
+            if (!rpl_msg) bulkSetMsg("Unknown error.", true, true);
+              else bulkSetMsg("Error: " + rpl_msg, true, true); 
+            return;
+          }
+          if (rpl_msg) bulkSetMsg(rpl_msg);
+          blkTest.total = blkData.total;
+          blkTest.full = blkData.full;
+          blkTest.part = blkData.part;
+          LoraResTimer = setInterval(checkBulkResult, 1000);
+        } catch (error) { bulkSetMsg("Error: "+error.message, true, true) }
+      } 
+
+      async function checkBulkResult() {
+        try {
+          const response = await fetch("/resbulk");
+          if (response.status === 202) return;
+          clearInterval(LoraResTimer);
+          if (response.status === 200) {
+            data = await response.json();
+            blkDRate.innerText = (data.rate / 1000).toFixed(3);
+            updateTiming(data);
+            bulkSetMsg("The test was completed successfully.", false, true);      
+          } else {
+            let err_msg = await response.text();
+            bulkSetMsg(err_msg, true, true); 
+          }
+          LoraResTimer = null;
+        } catch (error) {
+          bulkSetMsg("Error: " + error.message, true, true);
+          clearInterval(LoraResTimer); LoraResTimer = null;          
+        }
+      }
+      
       // ----------- GPS Monitoring ------------------ 
 
       let currentLat = null;
@@ -1083,14 +1388,20 @@
       cfgSelCR.addEventListener("change", onValueChange);
       cfgSelPB.addEventListener("change", onValueChange);
 
-      cfgBuffer.addEventListener("input", function() { validateInput(this, false, 1, 255, false, false); });
-      cfgBuffer.addEventListener("blur",  function() { validateInput(this, false, 1, 255, false, true); Recalculate(); });
+      cfgBuffer.addEventListener("input", function() { validateInput(this, false, 1, LORA_MAX_PACK_LENGTH, false, false); });
+      cfgBuffer.addEventListener("blur",  function() { validateInput(this, false, 1, LORA_MAX_PACK_LENGTH, false, true); Recalculate(); });
+
+      bulkPSize.addEventListener("input", function() { validateInput(this, false, 0, MAX_BULK_SIZE, false, true); recalcBulk(); });
+      //bulkPSize.addEventListener("blur",  function() { validateInput(this, false, 0, MAX_BULK_SIZE, false, true); recalcBulk(); });
+      bulkDelay.addEventListener("input", function() { validateInput(this, false, 0, 200, false, false); });
+      bulkDelay.addEventListener("blur",  function() { validateInput(this, false, 0, 200, false, true); });
 
       configRead();
       logTest.checked = testData.logTest;
       logFails.checked = testData.logFails;
       logTestChanged();
       comText.value = testData.comment;
+      recalcBulk();
 
       document.addEventListener("DOMContentLoaded", function () { 
         if (isMobileDevice()) {

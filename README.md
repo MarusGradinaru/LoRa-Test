@@ -41,7 +41,7 @@ Otherwise, the module will use the default settings, which may differ from the o
 ### ➤ LoRa Link Summary
 This section displays the results of calculations based on the LoRa and RF link configuration parameters. You can view the estimated Link Budget and the expected working range, as calculated using Semtech’s formula. In practice, the actual range will likely be shorter, since Semtech's calculations seem to assume ideal conditions to demonstrate the full potential of their chips.
 
-### ➤ LoRa TX / RX Test
+### ➤ LoRa Range Test
 From this section you can initiate a packet transmission to verify communication with the other module. You can choose the "_Payload Size_" (255 bytes max) and whether you want the results to be logged or not. 
 
 If you enable the "_Band RSSI Monitor_" the Band RSSI (noise floor) will be displayed in real time here. The distance between the TX module (client) and the base station, RX server module, measured by the GPS, is also displayed in real time.
@@ -50,6 +50,12 @@ When you are ready, press the "_Start Test_" button to begin the test. If it suc
 
 ### ➤ LoRa Test Results
 The test results are logged in this panel. The most recent one is added at the top. You can save the log to a file pressing the "_Download Log_" button, then clear the log results.
+
+### ➤ LoRa Bulk Test
+This test is designed to measure the bulk data transfer rate of a LoRa connection. When you select the "_Payload Size_" to transmit, the corresponding packet configuration is calculated and displayed below. The "_Tx Delay_" parameter adjusts the pause inserted before each packet transmission, allowing the receiver to keep up with the packet flow. Through testing, I found that a 4 ms delay provides the best trade-off between reliability and speed, resulting in a maximum throughput of about **5.2 KB/s** with the fastest LoRa settings. Further details about the LoRa Bulk Protocol can be found in the "_Info_" folder.
+
+When the test is complete, protocol debug timing information is displayed below the Data Rate panel.
+With the exception of the "_Reply Timing_" section, in all other sections the top value must be greater than the bottom value for the protocol to work correctly. In the "_Reply Timing_" section, however, the logic is reversed.
 
 ### ➤ GPS Monitoring
 You can also use your phone's GPS to measure the distance between the two modules during tests. On the left side is your current location updated in real time. First, go to the location where will you leave the RX module (server), and when the GPS shows the highest precision, press the "_Set_" button on the right side, to store the base station location, which will be used later to calculate the distance when you move. 
